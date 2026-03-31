@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aura Doc - Lock PDF</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Fonts: Manrope & Inter -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-secondary": "#ffffff",
+              "surface-container-lowest": "#ffffff",
+              "primary-fixed": "#dce1ff",
+              "surface-tint": "#2151da",
+              "surface-container": "#eaedff",
+              "surface-container-low": "#f2f3ff",
+              "error-container": "#ffdad6",
+              "outline-variant": "#c3c6d7",
+              "on-primary-fixed-variant": "#0039b5",
+              "surface-dim": "#d2d9f4",
+              "surface-variant": "#dae2fd",
+              "surface-container-high": "#e2e7ff",
+              "on-tertiary-container": "#ffede6",
+              "surface": "#faf8ff",
+              "primary": "#0d46d1",
+              "on-tertiary-fixed": "#360f00",
+              "outline": "#737686",
+              "on-primary-fixed": "#001551",
+              "on-error": "#ffffff",
+              "on-tertiary": "#ffffff",
+              "error": "#ba1a1a",
+              "tertiary-container": "#bc4800",
+              "on-secondary-container": "#57657a",
+              "tertiary-fixed-dim": "#ffb596",
+              "primary-container": "#3761ea",
+              "on-primary": "#ffffff",
+              "inverse-primary": "#b7c4ff",
+              "secondary-fixed-dim": "#b9c7df",
+              "primary-fixed-dim": "#b7c4ff",
+              "surface-bright": "#faf8ff",
+              "on-error-container": "#93000a",
+              "tertiary-fixed": "#ffdbcd",
+              "tertiary": "#943700",
+              "on-secondary-fixed": "#0d1c2e",
+              "secondary": "#515f74",
+              "secondary-fixed": "#d5e3fc",
+              "inverse-surface": "#283044",
+              "surface-container-highest": "#dae2fd",
+              "on-primary-container": "#efefff",
+              "background": "#faf8ff",
+              "inverse-on-surface": "#eef0ff",
+              "on-surface-variant": "#434655",
+              "on-surface": "#131b2e",
+              "secondary-container": "#d5e3fc",
+              "on-tertiary-fixed-variant": "#7d2d00",
+              "on-secondary-fixed-variant": "#3a485b",
+              "on-background": "#131b2e"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        display: inline-block;
+        line-height: 1;
+        text-transform: none;
+        letter-spacing: normal;
+        word-wrap: normal;
+        white-space: nowrap;
+        direction: ltr;
+      }
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #faf8ff;
+      }
+      .glass-effect {
+        background: rgba(250, 248, 255, 0.8);
+        backdrop-filter: blur(20px);
+      }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex flex-col">
+
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col items-center justify-start pt-12 pb-24 px-6 max-w-4xl mx-auto w-full">
+<!-- Header Text -->
+<div class="text-center mb-12">
+<h1 class="font-headline text-4xl font-extrabold tracking-tight text-on-surface mb-3">Lock PDF Document</h1>
+<p class="font-body text-secondary text-lg">Kata sandi AES-256 dan izin salin/cetak diatur dengan pikepdf.</p>
+</div>
+<!-- Bento-style Grid for Upload and Settings -->
+<div class="w-full grid grid-cols-1 gap-8">
+<!-- Upload Area -->
+<input type="file" id="pdf-input" accept="application/pdf,.pdf" class="hidden"/>
+<section id="drop-zone" class="bg-surface-container-lowest rounded-[2rem] p-10 flex flex-col items-center justify-center border-2 border-dashed border-primary-fixed hover:border-primary transition-all group cursor-pointer">
+<div class="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined text-primary text-4xl" data-icon="cloud_upload">cloud_upload</span>
+</div>
+<h3 class="font-headline text-xl font-bold mb-2">Seret &amp; lepas PDF</h3>
+<p class="font-body text-secondary mb-6">atau klik untuk memilih file</p>
+<div class="px-6 py-2 bg-surface-variant text-primary font-semibold rounded-full text-sm">Maks. 50MB</div>
+</section>
+<!-- File List Section -->
+<section class="bg-surface-container-low rounded-[1.5rem] p-6">
+<div class="flex items-center justify-between mb-4 px-2">
+<h4 class="font-headline font-bold text-on-surface-variant">File diunggah</h4>
+<span id="file-status" class="text-xs font-bold text-primary uppercase tracking-widest">Belum ada file</span>
+</div>
+<div id="file-list" class="space-y-3"></div>
+</section>
+<!-- Password Protection Section -->
+<section class="bg-surface-container-low rounded-[1.5rem] p-8">
+<div class="flex items-center gap-3 mb-8">
+<div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" data-icon="lock" style="font-variation-settings: 'FILL' 1;">lock</span>
+</div>
+<h4 class="font-headline text-xl font-bold">Password Protection</h4>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="font-label text-xs font-bold text-secondary ml-1">Kata sandi</label>
+<div class="relative group">
+<input id="pwd1" class="w-full bg-surface-container-lowest border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-primary/20 text-on-surface font-body outline-none transition-all placeholder:text-outline/50" placeholder="••••••••" type="password" autocomplete="new-password"/>
+<button type="button" class="toggle-vis absolute right-4 top-1/2 -translate-y-1/2 text-outline cursor-pointer bg-transparent border-0 p-0" data-target="pwd1" aria-label="Tampilkan sandi">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+</button>
+</div>
+</div>
+<div class="space-y-2">
+<label class="font-label text-xs font-bold text-secondary ml-1">Konfirmasi kata sandi</label>
+<div class="relative group">
+<input id="pwd2" class="w-full bg-surface-container-lowest border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-primary/20 text-on-surface font-body outline-none transition-all placeholder:text-outline/50" placeholder="••••••••" type="password" autocomplete="new-password"/>
+<button type="button" class="toggle-vis absolute right-4 top-1/2 -translate-y-1/2 text-outline cursor-pointer bg-transparent border-0 p-0" data-target="pwd2" aria-label="Tampilkan sandi">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+</button>
+</div>
+</div>
+</div>
+<div class="mt-6 flex items-start gap-3 bg-primary-fixed/30 p-4 rounded-xl">
+<span class="material-symbols-outlined text-primary text-sm mt-0.5" data-icon="info">info</span>
+<p class="text-xs text-on-primary-fixed-variant leading-relaxed">Kata sandi diproses di server Anda; simpan sandi dengan aman — file terkunci tidak dapat dibuka tanpa sandi.</p>
+</div>
+</section>
+<!-- Permissions: copy / print (pikepdf Permissions.extract + print_*) -->
+<section class="bg-surface-container-low rounded-[1.5rem] p-8">
+<div class="flex items-center gap-3 mb-6">
+<div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" data-icon="admin_panel_settings">admin_panel_settings</span>
+</div>
+<h4 class="font-headline text-xl font-bold">Izin setelah dokumen dibuka</h4>
+</div>
+<p class="text-sm text-secondary mb-6">Berlaku untuk pembaca yang hanya punya kata sandi pengguna (sesuai standar PDF). Izin <strong class="text-on-surface">salin</strong> memakai flag <code class="text-xs bg-surface-container px-1 rounded">extract</code>; <strong class="text-on-surface">cetak</strong> memakai <code class="text-xs bg-surface-container px-1 rounded">print_lowres</code> / <code class="text-xs bg-surface-container px-1 rounded">print_highres</code>.</p>
+<div class="space-y-4">
+<label class="flex items-start gap-4 cursor-pointer group">
+<input type="checkbox" id="allow-copy" class="mt-1 rounded border-outline text-primary focus:ring-primary/30" checked/>
+<span>
+<span class="font-label font-semibold text-on-surface block">Izinkan menyalin teks dan isi</span>
+<span class="text-xs text-secondary">Jika tidak dicentang, penyalinan ke clipboard dibatasi di pembaca yang menghormati izin.</span>
+</span>
+</label>
+<label class="flex items-start gap-4 cursor-pointer group">
+<input type="checkbox" id="allow-print" class="mt-1 rounded border-outline text-primary focus:ring-primary/30" checked/>
+<span>
+<span class="font-label font-semibold text-on-surface block">Izinkan mencetak</span>
+<span class="text-xs text-secondary">Matikan jika dokumen tidak boleh dicetak.</span>
+</span>
+</label>
+</div>
+</section>
+<!-- Primary Action Button -->
+<div class="flex flex-col items-center mt-4">
+<p id="form-error" class="text-error text-sm mb-3 hidden"></p>
+<button type="button" id="btn-lock" class="w-full md:w-auto md:min-w-[320px] bg-gradient-to-br from-[#0d46d1] to-[#3761ea] text-white py-5 px-10 rounded-full font-headline font-bold text-lg shadow-lg hover:shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:pointer-events-none">
+<span class="material-symbols-outlined" data-icon="lock_open">lock_open</span>
+<span id="btn-lock-label">Kunci PDF &amp; unduh</span>
+</button>
+<p class="mt-4 text-xs text-secondary font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px]" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+                    Enkripsi AES-256 (pikepdf)
+                </p>
+</div>
+</div>
+</main>
+<script>
+(function () {
+  const MAX_BYTES = 50 * 1024 * 1024;
+  const API_LOCK = "/api/pdf/lock";
+  let selectedFile = null;
+
+  const input = document.getElementById("pdf-input");
+  const dropZone = document.getElementById("drop-zone");
+  const fileList = document.getElementById("file-list");
+  const fileStatus = document.getElementById("file-status");
+  const pwd1 = document.getElementById("pwd1");
+  const pwd2 = document.getElementById("pwd2");
+  const allowCopy = document.getElementById("allow-copy");
+  const allowPrint = document.getElementById("allow-print");
+  const btnLock = document.getElementById("btn-lock");
+  const btnLockLabel = document.getElementById("btn-lock-label");
+  const formError = document.getElementById("form-error");
+
+  function showError(msg) {
+    formError.textContent = msg;
+    formError.classList.remove("hidden");
+  }
+  function hideError() {
+    formError.classList.add("hidden");
+  }
+
+  function fmtSize(n) {
+    if (n < 1024) return n + " B";
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+    return (n / (1024 * 1024)).toFixed(1) + " MB";
+  }
+
+  function renderFile() {
+    fileList.innerHTML = "";
+    if (!selectedFile) {
+      fileStatus.textContent = "Belum ada file";
+      return;
+    }
+    fileStatus.textContent = "1 file siap";
+    const card = document.createElement("div");
+    card.className =
+      "bg-surface-container-lowest p-4 rounded-xl flex items-center justify-between shadow-[0px_2px_8px_rgba(19,27,46,0.04)]";
+    card.innerHTML =
+      '<div class="flex items-center gap-4">' +
+      '<div class="w-10 h-10 bg-error-container/20 rounded-lg flex items-center justify-center">' +
+      '<span class="material-symbols-outlined text-error">description</span></div>' +
+      "<div><p class=\"font-body font-semibold text-on-surface text-sm\"></p>" +
+      '<p class="text-xs text-outline meta"></p></div></div>' +
+      '<button type="button" class="btn-remove p-2 hover:bg-error-container/30 rounded-full text-error transition-colors active:scale-90">' +
+      '<span class="material-symbols-outlined">delete</span></button>';
+    card.querySelector(".font-semibold").textContent = selectedFile.name;
+    card.querySelector(".meta").textContent =
+      fmtSize(selectedFile.size) + " • PDF";
+    card.querySelector(".btn-remove").addEventListener("click", function () {
+      selectedFile = null;
+      input.value = "";
+      renderFile();
+    });
+    fileList.appendChild(card);
+  }
+
+  function pickFile(file) {
+    hideError();
+    if (!file || file.type !== "application/pdf") {
+      showError("Pilih file PDF.");
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      showError("File lebih dari 50MB.");
+      return;
+    }
+    selectedFile = file;
+    renderFile();
+  }
+
+  dropZone.addEventListener("click", function () {
+    input.click();
+  });
+  input.addEventListener("change", function () {
+    const f = input.files && input.files[0];
+    if (f) pickFile(f);
+  });
+  ["dragenter", "dragover"].forEach(function (ev) {
+    dropZone.addEventListener(ev, function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.add("border-primary", "bg-primary-fixed/20");
+    });
+  });
+  ["dragleave", "drop"].forEach(function (ev) {
+    dropZone.addEventListener(ev, function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.remove("border-primary", "bg-primary-fixed/20");
+    });
+  });
+  dropZone.addEventListener("drop", function (e) {
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) pickFile(f);
+  });
+
+  document.querySelectorAll(".toggle-vis").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      const id = btn.getAttribute("data-target");
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.type = el.type === "password" ? "text" : "password";
+    });
+  });
+
+  btnLock.addEventListener("click", async function () {
+    hideError();
+    if (!selectedFile) {
+      showError("Unggah satu file PDF terlebih dahulu.");
+      return;
+    }
+    const p1 = pwd1.value;
+    const p2 = pwd2.value;
+    if (!p1 || p1.length < 4) {
+      showError("Kata sandi minimal 4 karakter.");
+      return;
+    }
+    if (p1 !== p2) {
+      showError("Konfirmasi kata sandi tidak sama.");
+      return;
+    }
+
+    const fd = new FormData();
+    fd.append("file", selectedFile, selectedFile.name);
+    fd.append("password", p1);
+    fd.append("allow_copy", allowCopy.checked ? "true" : "false");
+    fd.append("allow_print", allowPrint.checked ? "true" : "false");
+
+    btnLock.disabled = true;
+    btnLockLabel.textContent = "Memproses…";
+
+    try {
+      const res = await fetch(API_LOCK, { method: "POST", body: fd });
+      if (!res.ok) {
+        let detail = "Gagal mengunci PDF.";
+        try {
+          const j = await res.json();
+          if (j.detail) detail = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail);
+        } catch (_) {}
+        throw new Error(detail);
+      }
+      const blob = await res.blob();
+      const cd = res.headers.get("Content-Disposition") || "";
+      let fname = "document_locked.pdf";
+      const m = /filename="?([^";]+)"?/i.exec(cd);
+      if (m) fname = m[1];
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fname;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showError(err.message || "Terjadi kesalahan.");
+    } finally {
+      btnLock.disabled = false;
+      btnLockLabel.textContent = "Kunci PDF & unduh";
+    }
+  });
+})();
+</script>
+
+<!-- Image Prompts (Placeholders for design integrity) -->
+<div class="hidden">
+<img alt="" data-alt="smooth gradient flowing from deep navy to soft lavender with subtle grain texture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAq0438ucf-vZy-diBPEWzdyBkEy3cUzamtX2bHmXEJk1k3FMZOkcBDolN6k0BmT--9xKQN3ND3SeqaZdwp4wN565Xwd2yiusQRL-q_Z8QwOfbyioQLB7Lcyioxb7vk6RD6_Xi4w2--TvrpQtSlYp5db7WuBKiWnDycujAS4N5zLIM8wMEgm8uMgDx3n1QTT6pxShKi0Z30gOpX39IoJ47hfy9_5SwUxJtXGr7_u_pCzQ2j1kZwdm32UKH45GCzCTSMYRUuOl2OPG8"/>
+</div>
+</body></html>

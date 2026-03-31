@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html class="light" lang="id">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pisah PDF | Aura Doc</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@700;800&amp;display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            surface: "#faf8ff",
+            primary: "#0d46d1",
+            "primary-container": "#3761ea",
+            "surface-container-low": "#f2f3ff",
+            "surface-container-lowest": "#ffffff",
+            "on-surface": "#131b2e",
+            "on-surface-variant": "#434655",
+            outline: "#737686",
+            error: "#ba1a1a",
+            secondary: "#515f74",
+          },
+          fontFamily: { headline: ["Manrope"], body: ["Inter"] },
+        },
+      },
+    };
+  </script>
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      line-height: 1;
+    }
+    body { font-family: Inter, sans-serif; background: #faf8ff; color: #131b2e; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body class="min-h-screen">
+  <main class="max-w-6xl mx-auto px-4 py-10 pb-24">
+    <div class="text-center mb-10">
+      <h1 class="font-headline text-3xl md:text-4xl font-extrabold text-on-surface mb-2">Pisah &amp; hapus halaman PDF</h1>
+      <p class="text-secondary text-sm md:text-base max-w-2xl mx-auto">
+        Unggah PDF, lihat pratinjau semua halaman, centang halaman yang diinginkan lalu <strong>Split</strong> (satu file per halaman, atau ZIP jika banyak) atau <strong>Hapus</strong> (satu PDF tanpa halaman terpilih).
+      </p>
+    </div>
+
+    <input type="file" id="pdf-input" accept="application/pdf,.pdf" class="hidden"/>
+
+    <section id="drop-zone" class="bg-surface-container-lowest rounded-[2rem] border-2 border-dashed border-outline/40 hover:border-primary transition-all p-10 text-center cursor-pointer mb-8">
+      <span class="material-symbols-outlined text-primary text-5xl mb-4">upload_file</span>
+      <p class="font-headline font-bold text-lg mb-1">Seret &amp; lepas PDF di sini</p>
+      <p class="text-sm text-secondary mb-4">atau klik untuk memilih · maks. 50&nbsp;MB</p>
+    </section>
+
+    <p id="form-error" class="text-error text-sm text-center mb-4 hidden"></p>
+
+    <section id="toolbar" class="hidden flex flex-col md:flex-row flex-wrap gap-3 md:items-center md:justify-between mb-6 bg-surface-container-low rounded-2xl p-4">
+      <div class="flex flex-wrap gap-2">
+        <button type="button" id="btn-select-all" class="px-4 py-2 rounded-full bg-white border border-outline/30 text-sm font-semibold hover:border-primary/50 transition-colors">
+          Pilih semua
+        </button>
+        <button type="button" id="btn-deselect-all" class="px-4 py-2 rounded-full bg-white border border-outline/30 text-sm font-semibold hover:border-primary/50 transition-colors">
+          Batal pilih semua
+        </button>
+        <button type="button" id="btn-change-file" class="px-4 py-2 rounded-full bg-white border border-outline/30 text-sm font-semibold hover:border-primary/50 transition-colors">
+          Ganti file
+        </button>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" id="btn-split" class="px-5 py-2.5 rounded-full bg-gradient-to-br from-[#0d46d1] to-[#3761ea] text-white text-sm font-bold shadow-md hover:shadow-lg disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2">
+          <span class="material-symbols-outlined text-[20px]">content_copy</span>
+          Split halaman terpilih
+        </button>
+        <button type="button" id="btn-delete" class="px-5 py-2.5 rounded-full bg-on-surface text-white text-sm font-bold hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2">
+          <span class="material-symbols-outlined text-[20px]">delete</span>
+          Hapus halaman terpilih
+        </button>
+      </div>
+    </section>
+
+    <p id="file-meta" class="text-sm text-secondary mb-4 hidden"></p>
+
+    <div id="page-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
+  </main>
+
+  <script>
+  (function () {
+    const MAX_BYTES = 50 * 1024 * 1024;
+    const API_SPLIT = "/api/pdf/split-pages";
+    const API_DELETE = "/api/pdf/delete-pages";
+
+    if (typeof pdfjsLib !== "undefined") {
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    }
+
+    const input = document.getElementById("pdf-input");
+    const dropZone = document.getElementById("drop-zone");
+    const pageGrid = document.getElementById("page-grid");
+    const toolbar = document.getElementById("toolbar");
+    const formError = document.getElementById("form-error");
+    const fileMeta = document.getElementById("file-meta");
+    const btnSelectAll = document.getElementById("btn-select-all");
+    const btnDeselectAll = document.getElementById("btn-deselect-all");
+    const btnSplit = document.getElementById("btn-split");
+    const btnDelete = document.getElementById("btn-delete");
+    const btnChangeFile = document.getElementById("btn-change-file");
+
+    let currentFile = null;
+    let pdfDoc = null;
+    let numPages = 0;
+    const selected = new Set();
+    let apiPassword = null;
+
+    function showError(msg) {
+      formError.textContent = msg;
+      formError.classList.remove("hidden");
+    }
+    function hideError() {
+      formError.classList.add("hidden");
+    }
+
+    function fmtSize(n) {
+      if (n < 1024) return n + " B";
+      if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+      return (n / (1024 * 1024)).toFixed(1) + " MB";
+    }
+
+    function updateCardUI(pageNum) {
+      const card = document.querySelector('[data-page="' + pageNum + '"]');
+      if (!card) return;
+      const on = selected.has(pageNum);
+      card.classList.toggle("ring-2", on);
+      card.classList.toggle("ring-primary", on);
+      card.classList.toggle("bg-primary/5", on);
+      const cb = card.querySelector('input[type="checkbox"]');
+      if (cb) cb.checked = on;
+    }
+
+    function togglePage(pageNum) {
+      if (selected.has(pageNum)) selected.delete(pageNum);
+      else selected.add(pageNum);
+      updateCardUI(pageNum);
+    }
+
+    async function renderPdfDoc(pdf) {
+      pdfDoc = pdf;
+      numPages = pdf.numPages;
+      pageGrid.innerHTML = "";
+      selected.clear();
+
+      for (let i = 1; i <= numPages; i++) {
+        const page = await pdf.getPage(i);
+        const scale = 0.22;
+        const vp = page.getViewport({ scale: scale });
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = vp.width;
+        canvas.height = vp.height;
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+        const card = document.createElement("div");
+        card.dataset.page = String(i);
+        card.className =
+          "rounded-xl border border-outline/20 bg-white overflow-hidden cursor-pointer transition-shadow hover:shadow-md";
+        card.innerHTML =
+          '<div class="relative aspect-[3/4] bg-surface-container-low flex items-center justify-center p-1"></div>' +
+          '<div class="flex items-center gap-2 px-2 py-2 border-t border-outline/10">' +
+          '<input type="checkbox" class="rounded border-outline text-primary focus:ring-primary/30" data-page-check="' +
+          i +
+          '"/>' +
+          '<span class="text-xs font-semibold text-on-surface">Hal. ' +
+          i +
+          "</span></div>";
+        card.querySelector(".relative").appendChild(canvas);
+
+        card.addEventListener("click", function (e) {
+          if (e.target.tagName === "INPUT") return;
+          togglePage(i);
+        });
+        const cb = card.querySelector('input[type="checkbox"]');
+        cb.addEventListener("click", function (e) {
+          e.stopPropagation();
+          e.preventDefault();
+          togglePage(i);
+        });
+
+        pageGrid.appendChild(card);
+      }
+
+      toolbar.classList.remove("hidden");
+      dropZone.classList.add("hidden");
+    }
+
+    async function loadPdfWithOptionalPassword(file, password) {
+      const data = await file.arrayBuffer();
+      const task = pdfjsLib.getDocument({
+        data: data,
+        password: password || undefined,
+      });
+      try {
+        return await task.promise;
+      } catch (e) {
+        if (e && (e.name === "PasswordException" || /password/i.test(String(e.message || "")))) {
+          const err = new Error("NEED_PASSWORD");
+          err._pdfjs = e;
+          throw err;
+        }
+        throw e;
+      }
+    }
+
+    async function handleFile(file) {
+      hideError();
+      apiPassword = null;
+      if (!file || file.type !== "application/pdf") {
+        showError("Pilih file PDF.");
+        return;
+      }
+      if (file.size > MAX_BYTES) {
+        showError("File lebih dari 50MB.");
+        return;
+      }
+      currentFile = file;
+      fileMeta.textContent = file.name + " · " + fmtSize(file.size);
+      fileMeta.classList.remove("hidden");
+
+      let pwd = null;
+      for (;;) {
+        try {
+          const pdf = await loadPdfWithOptionalPassword(file, pwd);
+          await renderPdfDoc(pdf);
+          if (pwd) apiPassword = pwd;
+          return;
+        } catch (e) {
+          if (e && e.message === "NEED_PASSWORD") {
+            pwd = window.prompt("PDF ini terkunci. Masukkan kata sandi untuk pratinjau:");
+            if (!pwd) {
+              showError("Kata sandi diperlukan untuk membuka PDF ini.");
+              currentFile = null;
+              fileMeta.classList.add("hidden");
+              return;
+            }
+            continue;
+          }
+          showError(e.message || "Gagal membaca PDF.");
+          currentFile = null;
+          fileMeta.classList.add("hidden");
+          return;
+        }
+      }
+    }
+
+    dropZone.addEventListener("click", function () {
+      input.click();
+    });
+    input.addEventListener("change", function () {
+      const f = input.files && input.files[0];
+      if (f) handleFile(f);
+    });
+    ["dragenter", "dragover"].forEach(function (ev) {
+      dropZone.addEventListener(ev, function (e) {
+        e.preventDefault();
+        dropZone.classList.add("border-primary", "bg-primary/5");
+      });
+    });
+    ["dragleave", "drop"].forEach(function (ev) {
+      dropZone.addEventListener(ev, function (e) {
+        e.preventDefault();
+        dropZone.classList.remove("border-primary", "bg-primary/5");
+      });
+    });
+    dropZone.addEventListener("drop", function (e) {
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) handleFile(f);
+    });
+
+    btnSelectAll.addEventListener("click", function () {
+      for (let i = 1; i <= numPages; i++) selected.add(i);
+      for (let i = 1; i <= numPages; i++) updateCardUI(i);
+    });
+    btnDeselectAll.addEventListener("click", function () {
+      selected.clear();
+      for (let i = 1; i <= numPages; i++) updateCardUI(i);
+    });
+    btnChangeFile.addEventListener("click", function () {
+      hideError();
+      currentFile = null;
+      pdfDoc = null;
+      numPages = 0;
+      selected.clear();
+      apiPassword = null;
+      pageGrid.innerHTML = "";
+      toolbar.classList.add("hidden");
+      dropZone.classList.remove("hidden");
+      fileMeta.classList.add("hidden");
+      input.value = "";
+    });
+
+    function selectedPagesArray() {
+      return Array.from(selected).sort(function (a, b) {
+        return a - b;
+      });
+    }
+
+    function parseFilenameFromCD(cd) {
+      const m = /filename\*=UTF-8''([^;]+)|filename="([^"]+)"/i.exec(cd || "");
+      if (m) return decodeURIComponent((m[1] || m[2] || "").trim());
+      return null;
+    }
+
+    async function postPdfAction(url, password) {
+      const pages = selectedPagesArray();
+      const fd = new FormData();
+      fd.append("file", currentFile, currentFile.name);
+      fd.append("pages", JSON.stringify(pages));
+      if (password) fd.append("password", password);
+
+      const res = await fetch(url, { method: "POST", body: fd });
+      return res;
+    }
+
+    async function runWithPasswordRetry(url) {
+      let pwd = apiPassword;
+      let res = await postPdfAction(url, pwd);
+      if (res.status === 401) {
+        let payload = null;
+        try {
+          payload = await res.json();
+        } catch (_) {}
+        const d = payload && payload.detail;
+        const code = typeof d === "object" && d ? d.code : null;
+        if (code === "password_required") {
+          const p = window.prompt(
+            (d && d.message) ||
+              "Masukkan kata sandi PDF untuk memproses di server:"
+          );
+          if (!p) return null;
+          apiPassword = p;
+          res = await postPdfAction(url, p);
+        }
+      }
+      return res;
+    }
+
+    btnSplit.addEventListener("click", async function () {
+      hideError();
+      if (!currentFile || !numPages) {
+        showError("Unggah PDF terlebih dahulu.");
+        return;
+      }
+      const pages = selectedPagesArray();
+      if (!pages.length) {
+        showError("Pilih minimal satu halaman untuk Split.");
+        return;
+      }
+      btnSplit.disabled = true;
+      try {
+        let res = await runWithPasswordRetry(API_SPLIT);
+        if (!res) return;
+        if (!res.ok) {
+          let msg = "Gagal split PDF.";
+          try {
+            const j = await res.json();
+            if (typeof j.detail === "string") msg = j.detail;
+            else if (j.detail && j.detail.message) msg = j.detail.message;
+          } catch (_) {}
+          throw new Error(msg);
+        }
+        const blob = await res.blob();
+        const cd = res.headers.get("Content-Disposition") || "";
+        let fname =
+          parseFilenameFromCD(cd) ||
+          (pages.length === 1 ? "page.pdf" : "split_pages.zip");
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = fname;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      } catch (e) {
+        showError(e.message || "Terjadi kesalahan.");
+      } finally {
+        btnSplit.disabled = false;
+      }
+    });
+
+    btnDelete.addEventListener("click", async function () {
+      hideError();
+      if (!currentFile || !numPages) {
+        showError("Unggah PDF terlebih dahulu.");
+        return;
+      }
+      const pages = selectedPagesArray();
+      if (!pages.length) {
+        showError("Pilih minimal satu halaman untuk dihapus.");
+        return;
+      }
+      if (pages.length >= numPages) {
+        showError("Tidak boleh menghapus semua halaman.");
+        return;
+      }
+      if (!window.confirm("Halaman terpilih akan dihapus dari salinan baru. Lanjutkan?")) {
+        return;
+      }
+      btnDelete.disabled = true;
+      try {
+        let res = await runWithPasswordRetry(API_DELETE);
+        if (!res) return;
+        if (!res.ok) {
+          let msg = "Gagal menghapus halaman.";
+          try {
+            const j = await res.json();
+            if (typeof j.detail === "string") msg = j.detail;
+            else if (j.detail && j.detail.message) msg = j.detail.message;
+          } catch (_) {}
+          throw new Error(msg);
+        }
+        const blob = await res.blob();
+        const cd = res.headers.get("Content-Disposition") || "";
+        let fname = parseFilenameFromCD(cd) || "trimmed.pdf";
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = fname;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      } catch (e) {
+        showError(e.message || "Terjadi kesalahan.");
+      } finally {
+        btnDelete.disabled = false;
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

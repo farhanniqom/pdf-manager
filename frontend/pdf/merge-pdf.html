@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html class="light" lang="id">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Merge PDF | Aura Doc</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    body { font-family: Inter, sans-serif; background: #faf8ff; color: #131b2e; }
+    .material-symbols-outlined { font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <main class="max-w-7xl mx-auto px-4 py-10 pb-24">
+    <div class="text-center mb-8">
+      <h1 class="text-3xl md:text-4xl font-extrabold mb-2" style="font-family: Manrope, sans-serif;">Merge PDF by Selected Pages</h1>
+      <p class="text-sm text-slate-600 max-w-3xl mx-auto">
+        Unggah beberapa PDF, pilih halaman yang mau digabung, atur urutan dengan drag &amp; drop, lalu unduh hasil merge.
+      </p>
+    </div>
+
+    <input id="pdf-input" type="file" accept="application/pdf,.pdf" multiple class="hidden"/>
+
+    <section id="drop-zone" class="rounded-3xl border-2 border-dashed border-slate-300 bg-white p-8 text-center cursor-pointer hover:border-blue-400 transition-colors mb-4">
+      <span class="material-symbols-outlined text-blue-700 text-5xl">upload_file</span>
+      <p class="font-semibold mt-3">Klik atau seret beberapa file PDF</p>
+      <p class="text-sm text-slate-500 mt-1">Jika file punya password, sistem akan minta password saat preview.</p>
+      <button id="btn-add-more" type="button" class="mt-4 px-4 py-2 rounded-full border border-slate-300 text-sm font-semibold hover:border-blue-500">
+        Tambah file lagi
+      </button>
+    </section>
+
+    <p id="form-error" class="hidden text-red-700 text-sm mb-4"></p>
+
+    <section class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      <div class="xl:col-span-8">
+        <div class="rounded-2xl bg-slate-100 p-4 mb-3 flex items-center justify-between">
+          <p class="text-sm font-semibold">Preview semua halaman</p>
+          <div class="flex items-center gap-2">
+            <button id="btn-select-all" type="button" class="text-xs px-3 py-1 rounded-full border border-slate-300 hover:border-blue-500">Select All</button>
+            <button id="btn-deselect-all" type="button" class="text-xs px-3 py-1 rounded-full border border-slate-300 hover:border-red-500">Deselect All</button>
+            <p id="meta" class="text-xs text-slate-600">Belum ada file</p>
+          </div>
+        </div>
+        <div id="page-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+      </div>
+
+      <div class="xl:col-span-4">
+        <div class="rounded-2xl bg-white border border-slate-200 p-4 sticky top-6">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="font-bold">Urutan merge</h2>
+            <button id="btn-clear" type="button" class="text-xs px-3 py-1 rounded-full border border-slate-300 hover:border-slate-500">Clear</button>
+          </div>
+          <p class="text-xs text-slate-500 mb-3">Drag item untuk mengatur urutan halaman di hasil akhir.</p>
+          <ul id="selected-list" class="space-y-2 max-h-[420px] overflow-auto"></ul>
+          <button id="btn-merge" type="button" class="mt-4 w-full rounded-full bg-gradient-to-br from-blue-700 to-blue-500 text-white font-bold py-3 disabled:opacity-50 disabled:pointer-events-none">
+            Merge &amp; Download
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+  (function () {
+    const API_MERGE = "/api/pdf/merge-pages";
+    const MAX_BYTES = 50 * 1024 * 1024;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+    const input = document.getElementById("pdf-input");
+    const dropZone = document.getElementById("drop-zone");
+    const pageGrid = document.getElementById("page-grid");
+    const selectedList = document.getElementById("selected-list");
+    const btnMerge = document.getElementById("btn-merge");
+    const btnClear = document.getElementById("btn-clear");
+    const formError = document.getElementById("form-error");
+    const meta = document.getElementById("meta");
+    const btnAddMore = document.getElementById("btn-add-more");
+
+    let filesState = []; // [{file, pages, password}]
+    let selectedOrder = []; // [{uid,fileIndex,page,fileName}]
+    let allPagesOrder = []; // [uid]
+    let allCardsMap = new Map(); // uid -> card element
+    let dragUid = null;
+    let dragPreviewUid = null;
+
+    function showError(msg) {
+      formError.textContent = msg;
+      formError.classList.remove("hidden");
+    }
+    function hideError() {
+      formError.classList.add("hidden");
+    }
+
+    function updateMeta() {
+      if (!filesState.length) {
+        meta.textContent = "Belum ada file";
+        return;
+      }
+      const pages = filesState.reduce((a, f) => a + f.pages.length, 0);
+      meta.textContent = filesState.length + " file · " + pages + " halaman";
+    }
+
+    function syncMergeButton() {
+      btnMerge.disabled = selectedOrder.length === 0;
+    }
+
+    function renderSelectedList() {
+      selectedList.innerHTML = "";
+      selectedOrder.forEach((it, idx) => {
+        const li = document.createElement("li");
+        li.draggable = true;
+        li.dataset.uid = it.uid;
+        li.className = "rounded-xl border border-slate-300 px-3 py-2 bg-slate-50 flex items-center justify-between gap-2 cursor-move";
+        li.innerHTML =
+          '<div class="min-w-0">' +
+          '<p class="text-xs font-bold text-slate-800 truncate">' + (idx + 1) + ". " + it.fileName + " · Hal. " + it.page + "</p>" +
+          "</div>" +
+          '<button type="button" class="btn-remove text-red-700 text-xs font-semibold">Hapus</button>';
+
+        li.addEventListener("dragstart", function () { dragUid = it.uid; });
+        li.addEventListener("dragover", function (e) { e.preventDefault(); });
+        li.addEventListener("drop", function (e) {
+          e.preventDefault();
+          if (!dragUid || dragUid === it.uid) return;
+          const from = selectedOrder.findIndex((x) => x.uid === dragUid);
+          const to = selectedOrder.findIndex((x) => x.uid === it.uid);
+          if (from < 0 || to < 0) return;
+          const [moved] = selectedOrder.splice(from, 1);
+          selectedOrder.splice(to, 0, moved);
+          renderSelectedList();
+        });
+        li.querySelector(".btn-remove").addEventListener("click", function () {
+          selectedOrder = selectedOrder.filter((x) => x.uid !== it.uid);
+          const c = document.querySelector('input[data-uid="' + it.uid + '"]');
+          if (c) c.checked = false;
+          renderSelectedList();
+        });
+        selectedList.appendChild(li);
+      });
+      syncMergeButton();
+      syncOrderBadges();
+    }
+
+    function reorderSelectedByUid(fromUid, toUid) {
+      if (!fromUid || !toUid || fromUid === toUid) return;
+      const from = selectedOrder.findIndex((x) => x.uid === fromUid);
+      const to = selectedOrder.findIndex((x) => x.uid === toUid);
+      if (from < 0 || to < 0) return;
+      const [moved] = selectedOrder.splice(from, 1);
+      selectedOrder.splice(to, 0, moved);
+      renderSelectedList();
+    }
+
+    function syncOrderBadges() {
+      pageGrid.querySelectorAll(".order-badge").forEach((b) => {
+        b.classList.add("hidden");
+        b.classList.remove("flex");
+        b.textContent = "";
+      });
+      selectedOrder.forEach((it, idx) => {
+        const card = pageGrid.querySelector('[data-uid="' + it.uid + '"]');
+        if (!card) return;
+        const badge = card.querySelector(".order-badge");
+        if (!badge) return;
+        badge.textContent = String(idx + 1);
+        badge.classList.remove("hidden");
+        badge.classList.add("flex");
+      });
+    }
+
+    function syncPreviewOrder() {
+      const selectedUidOrder = selectedOrder.map((x) => x.uid);
+      const selectedSet = new Set(selectedUidOrder);
+      const allCards = Array.from(pageGrid.querySelectorAll("[data-uid]"));
+      const byUid = new Map(allCards.map((c) => [c.dataset.uid, c]));
+
+      selectedUidOrder.forEach((uid) => {
+        const card = byUid.get(uid);
+        if (card) pageGrid.appendChild(card);
+      });
+      allCards.forEach((card) => {
+        if (!selectedSet.has(card.dataset.uid)) {
+          pageGrid.appendChild(card);
+        }
+      });
+    }
+
+    function renderPageGrid() {
+      pageGrid.innerHTML = "";
+      allPagesOrder.forEach((uid) => {
+        const card = allCardsMap.get(uid);
+        if (card) pageGrid.appendChild(card);
+      });
+    }
+
+    function toggleSelected(fileIndex, page, fileName, checked, uid) {
+      if (checked) {
+        if (!selectedOrder.some((x) => x.uid === uid)) {
+          selectedOrder.push({ uid: uid, fileIndex: fileIndex, page: page, fileName: fileName });
+        }
+      } else {
+        selectedOrder = selectedOrder.filter((x) => x.uid !== uid);
+      }
+      renderSelectedList();
+    }
+
+    async function renderFilePages(file, fileIndex, pdfDoc) {
+      const total = pdfDoc.numPages;
+      for (let p = 1; p <= total; p++) {
+        const page = await pdfDoc.getPage(p);
+        const vp = page.getViewport({ scale: 0.24 });
+        const canvas = document.createElement("canvas");
+        canvas.width = vp.width;
+        canvas.height = vp.height;
+        await page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
+
+        const uid = "f" + fileIndex + "_p" + p;
+        const card = document.createElement("label");
+        card.dataset.uid = uid;
+        card.draggable = true;
+        card.className = "block rounded-xl border border-slate-300 bg-white overflow-hidden cursor-pointer hover:shadow-md transition-shadow";
+        card.innerHTML =
+          '<div class="bg-slate-100 p-1 relative"></div>' +
+          '<div class="px-2 py-2 border-t border-slate-200 flex items-center gap-2">' +
+          '<input type="checkbox" class="rounded border-slate-400 text-blue-700 focus:ring-blue-300" data-uid="' + uid + '"/>' +
+          '<span class="text-xs font-semibold truncate">' + file.name + " · Hal. " + p + "</span>" +
+          "</div>";
+        const previewWrap = card.querySelector(".bg-slate-100");
+        previewWrap.appendChild(canvas);
+        const badge = document.createElement("div");
+        badge.className = "order-badge hidden absolute top-2 left-2 w-6 h-6 rounded-full bg-blue-700 text-white text-xs font-extrabold items-center justify-center shadow";
+        previewWrap.appendChild(badge);
+        const cb = card.querySelector('input[type="checkbox"]');
+        cb.addEventListener("change", function () {
+          toggleSelected(fileIndex, p, file.name, cb.checked, uid);
+        });
+        card.addEventListener("dragstart", function () {
+          dragPreviewUid = uid;
+        });
+        card.addEventListener("dragover", function (e) {
+          e.preventDefault();
+        });
+        card.addEventListener("drop", function (e) {
+          e.preventDefault();
+          const fromIndex = allPagesOrder.indexOf(dragPreviewUid);
+          const toIndex = allPagesOrder.indexOf(uid);
+          if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) {
+            allPagesOrder.splice(fromIndex, 1);
+            allPagesOrder.splice(toIndex, 0, dragPreviewUid);
+            renderPageGrid();
+            // Update selectedOrder berdasarkan urutan baru
+            selectedOrder.sort((a, b) => allPagesOrder.indexOf(a.uid) - allPagesOrder.indexOf(b.uid));
+            renderSelectedList();
+          }
+        });
+        // pageGrid.appendChild(card); // Remove this
+        allCardsMap.set(uid, card);
+        allPagesOrder.push(uid); // Add this
+      }
+    }
+
+    async function openPdfWithPassword(file) {
+      let password = null;
+      for (;;) {
+        try {
+          const data = await file.arrayBuffer();
+          const pdfDoc = await pdfjsLib.getDocument({
+            data: data,
+            password: password || undefined,
+          }).promise;
+          return { pdfDoc: pdfDoc, password: password };
+        } catch (e) {
+          const needPwd = e && (e.name === "PasswordException" || /password/i.test(String(e.message || "")));
+          if (!needPwd) throw e;
+          const p = window.prompt("File " + file.name + " terkunci. Masukkan password:");
+          if (!p) throw new Error("Password dibutuhkan untuk " + file.name);
+          password = p;
+        }
+      }
+    }
+
+    async function loadFiles(files, append) {
+      hideError();
+      if (!append) {
+        pageGrid.innerHTML = "";
+        selectedOrder = [];
+        allPagesOrder = [];
+        allCardsMap.clear();
+        filesState = [];
+        renderSelectedList();
+      }
+      if (!files.length) return;
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!file.name.toLowerCase().endsWith(".pdf")) {
+          showError("Semua file harus PDF.");
+          return;
+        }
+        if (file.size > MAX_BYTES) {
+          showError("File " + file.name + " melebihi 50MB.");
+          return;
+        }
+      }
+
+      let baseIndex = filesState.length;
+      for (let i = 0; i < files.length; i++) {
+        try {
+          const result = await openPdfWithPassword(files[i]);
+          const pages = result.pdfDoc.numPages;
+          const fileIndex = baseIndex + i;
+          filesState.push({
+            file: files[i],
+            pages: new Array(pages).fill(0).map((_, idx) => idx + 1),
+            password: result.password || null,
+          });
+          await renderFilePages(files[i], fileIndex, result.pdfDoc);
+        } catch (e) {
+          showError(e.message || "Gagal membuka " + files[i].name);
+          return;
+        }
+      }
+      updateMeta();
+      renderPageGrid();
+    }
+
+    function parseFilenameFromCD(cd) {
+      const m = /filename\*=UTF-8''([^;]+)|filename="([^"]+)"/i.exec(cd || "");
+      if (!m) return null;
+      return decodeURIComponent((m[1] || m[2] || "").trim());
+    }
+
+    async function doMerge() {
+      hideError();
+      if (!filesState.length) {
+        showError("Unggah file terlebih dahulu.");
+        return;
+      }
+      if (!selectedOrder.length) {
+        showError("Pilih minimal satu halaman.");
+        return;
+      }
+
+      btnMerge.disabled = true;
+      const fd = new FormData();
+      filesState.forEach((s) => fd.append("files", s.file, s.file.name));
+      const order = selectedOrder.map((x) => ({ file_index: x.fileIndex, page: x.page }));
+      fd.append("order", JSON.stringify(order));
+      const pw = {};
+      filesState.forEach((s, idx) => { if (s.password) pw[String(idx)] = s.password; });
+      fd.append("passwords", JSON.stringify(pw));
+
+      try {
+        let res = await fetch(API_MERGE, { method: "POST", body: fd });
+        if (res.status === 401) {
+          let j = null;
+          try { j = await res.json(); } catch (_) {}
+          const d = j && j.detail;
+          const fileIdx = d && typeof d === "object" ? d.file_index : null;
+          if (d && d.code === "password_required" && typeof fileIdx === "number") {
+            const p = window.prompt(d.message || ("Masukkan password file ke-" + (fileIdx + 1)));
+            if (!p) return;
+            filesState[fileIdx].password = p;
+            const fd2 = new FormData();
+            filesState.forEach((s) => fd2.append("files", s.file, s.file.name));
+            fd2.append("order", JSON.stringify(order));
+            const pw2 = {};
+            filesState.forEach((s, idx) => { if (s.password) pw2[String(idx)] = s.password; });
+            fd2.append("passwords", JSON.stringify(pw2));
+            res = await fetch(API_MERGE, { method: "POST", body: fd2 });
+          }
+        }
+        if (!res.ok) {
+          let msg = "Gagal merge PDF.";
+          try {
+            const j = await res.json();
+            if (typeof j.detail === "string") msg = j.detail;
+            else if (j.detail && j.detail.message) msg = j.detail.message;
+          } catch (_) {}
+          throw new Error(msg);
+        }
+        const blob = await res.blob();
+        const cd = res.headers.get("Content-Disposition") || "";
+        const name = parseFilenameFromCD(cd) || "merged.pdf";
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      } catch (e) {
+        showError(e.message || "Terjadi kesalahan.");
+      } finally {
+        btnMerge.disabled = false;
+        syncMergeButton();
+      }
+    }
+
+    dropZone.addEventListener("click", function () { input.click(); });
+    input.addEventListener("change", function () {
+      const files = Array.from(input.files || []);
+      loadFiles(files, true);
+      input.value = "";
+    });
+    ["dragenter", "dragover"].forEach(function (ev) {
+      dropZone.addEventListener(ev, function (e) {
+        e.preventDefault();
+        dropZone.classList.add("border-blue-500");
+      });
+    });
+    ["dragleave", "drop"].forEach(function (ev) {
+      dropZone.addEventListener(ev, function (e) {
+        e.preventDefault();
+        dropZone.classList.remove("border-blue-500");
+      });
+    });
+    dropZone.addEventListener("drop", function (e) {
+      const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
+      if (files.length) loadFiles(files, true);
+    });
+    btnAddMore.addEventListener("click", function (e) {
+      e.stopPropagation();
+      input.click();
+    });
+
+    btnMerge.addEventListener("click", doMerge);
+    btnClear.addEventListener("click", function () {
+      selectedOrder = [];
+      pageGrid.querySelectorAll('input[type="checkbox"]').forEach((x) => { x.checked = false; });
+      renderSelectedList();
+    });
+
+    const btnSelectAll = document.getElementById("btn-select-all");
+    const btnDeselectAll = document.getElementById("btn-deselect-all");
+
+    btnSelectAll.addEventListener("click", function () {
+      pageGrid.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+        if (!cb.checked) {
+          cb.checked = true;
+          const uid = cb.dataset.uid;
+          const parts = uid.split('_');
+          const fileIndex = parseInt(parts[0].substring(1));
+          const page = parseInt(parts[1].substring(1));
+          const fileState = filesState[fileIndex];
+          const fileName = fileState.file.name;
+          if (!selectedOrder.some((x) => x.uid === uid)) {
+            selectedOrder.push({ uid: uid, fileIndex: fileIndex, page: page, fileName: fileName });
+          }
+        }
+      });
+      renderSelectedList();
+    });
+
+    btnDeselectAll.addEventListener("click", function () {
+      selectedOrder = [];
+      pageGrid.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+        cb.checked = false;
+      });
+      renderSelectedList();
+    });
+
+    syncMergeButton();
+  })();
+  </script>
+</body>
+</html>

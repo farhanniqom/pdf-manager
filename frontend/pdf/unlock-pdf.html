@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "secondary-fixed": "#d5e3fc",
+                        "surface-tint": "#2151da",
+                        "on-primary-fixed": "#001551",
+                        "on-primary-container": "#efefff",
+                        "on-tertiary-fixed": "#360f00",
+                        "tertiary-fixed-dim": "#ffb596",
+                        "on-secondary": "#ffffff",
+                        "on-background": "#131b2e",
+                        "background": "#faf8ff",
+                        "surface-container-high": "#e2e7ff",
+                        "on-secondary-fixed-variant": "#3a485b",
+                        "primary-fixed-dim": "#b7c4ff",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed": "#0d1c2e",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#434655",
+                        "secondary-container": "#d5e3fc",
+                        "secondary-fixed-dim": "#b9c7df",
+                        "on-secondary-container": "#57657a",
+                        "surface-container-highest": "#dae2fd",
+                        "inverse-on-surface": "#eef0ff",
+                        "tertiary": "#943700",
+                        "surface-bright": "#faf8ff",
+                        "primary-container": "#3761ea",
+                        "tertiary-container": "#bc4800",
+                        "outline-variant": "#c3c6d7",
+                        "outline": "#737686",
+                        "tertiary-fixed": "#ffdbcd",
+                        "on-primary-fixed-variant": "#0039b5",
+                        "on-surface": "#131b2e",
+                        "on-tertiary": "#ffffff",
+                        "inverse-primary": "#b7c4ff",
+                        "on-primary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "secondary": "#515f74",
+                        "on-tertiary-fixed-variant": "#7d2d00",
+                        "on-tertiary-container": "#ffede6",
+                        "surface-variant": "#dae2fd",
+                        "primary-fixed": "#dce1ff",
+                        "surface-dim": "#d2d9f4",
+                        "primary": "#0d46d1",
+                        "inverse-surface": "#283044",
+                        "surface-container-low": "#f2f3ff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface": "#faf8ff",
+                        "surface-container": "#eaedff",
+                        "error": "#ba1a1a"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #faf8ff;
+            font-family: 'Inter', sans-serif;
+        }
+        .editorial-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 2rem;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="text-on-surface antialiased">
+
+<main class="max-w-4xl mx-auto px-8 py-12">
+<div class="text-center mb-12">
+<h1 class="font-headline font-extrabold text-4xl text-on-surface leading-tight mb-4">
+    Buka Kunci PDF
+</h1>
+<p class="font-body text-on-surface-variant text-lg max-w-2xl mx-auto">
+    Masukkan kata sandi dokumen untuk menghapus batasan keamanan.
+</p>
+</div>
+
+<div class="space-y-8">
+<!-- Selected File Card -->
+<div class="surface-container-lowest p-8 rounded-[2rem] border border-outline-variant/15 shadow-sm flex items-center justify-between group transition-all hover:shadow-md" id="file-card" style="display: none;">
+<div class="flex items-center gap-6">
+<div class="w-16 h-20 bg-primary-container/10 rounded-xl flex items-center justify-center relative overflow-hidden">
+<span class="material-symbols-outlined text-primary text-4xl" data-weight="fill" style="font-variation-settings: 'FILL' 1;">description</span>
+<div class="absolute bottom-0 inset-x-0 h-1 bg-primary"></div>
+</div>
+<div>
+<h3 class="font-headline font-bold text-xl text-on-surface" id="file-name">Tidak ada file dipilih</h3>
+<div class="flex items-center gap-3 mt-1">
+<span class="font-body text-sm text-on-surface-variant font-medium" id="file-size">-</span>
+<span class="w-1 h-1 rounded-full bg-outline"></span>
+<span class="font-body text-sm text-primary font-semibold uppercase tracking-wider">Terkunci</span>
+</div>
+</div>
+</div>
+<button class="text-on-surface-variant hover:text-error transition-colors p-2" id="remove-file">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+
+<!-- Password Input and Upload Zone -->
+<div class="surface-container-low rounded-[2rem] p-10 space-y-8">
+<div class="space-y-4">
+<label class="font-label text-sm font-semibold text-on-surface-variant" for="pdf-password">Masukkan Kata Sandi PDF</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-4 flex items-center pointer-events-none text-outline">
+<span class="material-symbols-outlined">key</span>
+</div>
+<input class="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary h-16 pl-12 pr-4 rounded-xl font-body text-lg transition-all outline-none" id="pdf-password" placeholder="••••••••••••" type="password"/>
+</div>
+</div>
+
+<!-- Primary Action Button -->
+<button class="w-full h-16 rounded-full bg-gradient-to-br from-[#0d46d1] to-[#3761ea] text-white font-headline font-bold text-lg px-8 flex items-center justify-center gap-3 hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-primary/20" id="unlock-btn">
+<span>Buka Kunci PDF & Unduh</span>
+<span class="material-symbols-outlined">download</span>
+</button>
+
+<!-- Drop Zone -->
+<div class="border-2 border-dashed border-outline-variant/30 rounded-[2rem] p-12 text-center group cursor-pointer hover:border-primary/40 transition-colors" id="drop-zone">
+<div class="flex flex-col items-center justify-center">
+<div class="w-16 h-16 bg-surface-container rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-outline group-hover:text-primary">upload_file</span>
+</div>
+<p class="font-headline font-bold text-on-surface text-lg">Pilih file PDF</p>
+<p class="font-body text-on-surface-variant text-sm mt-1">Seret dan lepas atau klik untuk menelusuri</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+
+
+<script>
+let selectedFile = null;
+
+const fileCard = document.getElementById('file-card');
+const fileNameEl = document.getElementById('file-name');
+const fileSizeEl = document.getElementById('file-size');
+const dropZone = document.getElementById('drop-zone');
+const passwordInput = document.getElementById('pdf-password');
+const unlockBtn = document.getElementById('unlock-btn');
+const removeBtn = document.getElementById('remove-file');
+const fileInput = document.createElement('input');
+fileInput.type = 'file';
+fileInput.accept = '.pdf';
+fileInput.style.display = 'none';
+document.body.appendChild(fileInput);
+
+// Update file display
+function updateFileDisplay(file) {
+    selectedFile = file;
+    const size = (file.size / 1024 / 1024).toFixed(1) + ' MB';
+    fileNameEl.textContent = file.name;
+    fileSizeEl.textContent = size;
+    fileCard.style.display = 'flex';
+    dropZone.querySelector('p.font-headline').textContent = 'Tukar dengan file lain';
+}
+
+// Remove file
+removeBtn.addEventListener('click', () => {
+    selectedFile = null;
+    fileCard.style.display = 'none';
+    fileNameEl.textContent = 'Tidak ada file dipilih';
+    fileSizeEl.textContent = '-';
+    dropZone.querySelector('p.font-headline').textContent = 'Pilih file PDF';
+    passwordInput.value = '';
+});
+
+// Handle file selection
+fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) updateFileDisplay(file);
+});
+
+// Drop zone events
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('border-primary');
+});
+dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('border-primary');
+});
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('border-primary');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type === 'application/pdf') {
+        updateFileDisplay(file);
+    }
+});
+
+// Unlock button
+unlockBtn.addEventListener('click', async () => {
+    if (!selectedFile || !passwordInput.value) {
+        alert('Silakan pilih file PDF dan masukkan kata sandi.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('password', passwordInput.value);
+
+    try {
+        const response = await fetch('/api/pdf/unlock', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = selectedFile.name.replace('.pdf', '_unlocked.pdf');
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } else {
+            const error = await response.json();
+            alert('Kesalahan: ' + error.detail);
+        }
+    } catch (error) {
+        alert('Kesalahan jaringan: ' + error.message);
+    }
+});
+</script>
+
+</body></html>
