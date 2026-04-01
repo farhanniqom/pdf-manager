@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Merge PDF | Aura Doc</title>
+  <title>Gabung PDF</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@700;800&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -16,7 +16,7 @@
 <body class="min-h-screen">
   <main class="max-w-7xl mx-auto px-4 py-10 pb-24">
     <div class="text-center mb-8">
-      <h1 class="text-3xl md:text-4xl font-extrabold mb-2" style="font-family: Manrope, sans-serif;">Merge PDF by Selected Pages</h1>
+      <h1 class="text-3xl md:text-4xl font-extrabold mb-2" style="font-family: Manrope, sans-serif;">Gabungkan PDF berdasarkan Halaman yang Dipilih</h1>
       <p class="text-sm text-slate-600 max-w-3xl mx-auto">
         Unggah beberapa PDF, pilih halaman yang mau digabung, atur urutan dengan drag &amp; drop, lalu unduh hasil merge.
       </p>
@@ -27,9 +27,9 @@
     <section id="drop-zone" class="rounded-3xl border-2 border-dashed border-slate-300 bg-white p-8 text-center cursor-pointer hover:border-blue-400 transition-colors mb-4">
       <span class="material-symbols-outlined text-blue-700 text-5xl">upload_file</span>
       <p class="font-semibold mt-3">Klik atau seret beberapa file PDF</p>
-      <p class="text-sm text-slate-500 mt-1">Jika file punya password, sistem akan minta password saat preview.</p>
+      <p class="text-sm text-slate-500 mt-1">Maksimal 50 MB per file</p>
       <button id="btn-add-more" type="button" class="mt-4 px-4 py-2 rounded-full border border-slate-300 text-sm font-semibold hover:border-blue-500">
-        Tambah file lagi
+        Tambah file
       </button>
     </section>
 
@@ -40,8 +40,8 @@
         <div class="rounded-2xl bg-slate-100 p-4 mb-3 flex items-center justify-between">
           <p class="text-sm font-semibold">Preview semua halaman</p>
           <div class="flex items-center gap-2">
-            <button id="btn-select-all" type="button" class="text-xs px-3 py-1 rounded-full border border-slate-300 hover:border-blue-500">Select All</button>
-            <button id="btn-deselect-all" type="button" class="text-xs px-3 py-1 rounded-full border border-slate-300 hover:border-red-500">Deselect All</button>
+            <button id="btn-select-all" type="button" class="text-xs px-3 py-1 rounded-full border border-slate-300 hover:border-blue-500">Pilih semua</button>
+            <button id="btn-deselect-all" type="button" class="text-xs px-3 py-1 rounded-full border border-slate-300 hover:border-red-500">Batal pilih semua</button>
             <p id="meta" class="text-xs text-slate-600">Belum ada file</p>
           </div>
         </div>
@@ -51,13 +51,13 @@
       <div class="xl:col-span-4">
         <div class="rounded-2xl bg-white border border-slate-200 p-4 sticky top-6">
           <div class="flex items-center justify-between mb-3">
-            <h2 class="font-bold">Urutan merge</h2>
+            <h2 class="font-bold">Urutan</h2>
             <button id="btn-clear" type="button" class="text-xs px-3 py-1 rounded-full border border-slate-300 hover:border-slate-500">Clear</button>
           </div>
           <p class="text-xs text-slate-500 mb-3">Drag item untuk mengatur urutan halaman di hasil akhir.</p>
           <ul id="selected-list" class="space-y-2 max-h-[420px] overflow-auto"></ul>
           <button id="btn-merge" type="button" class="mt-4 w-full rounded-full bg-gradient-to-br from-blue-700 to-blue-500 text-white font-bold py-3 disabled:opacity-50 disabled:pointer-events-none">
-            Merge &amp; Download
+            Gabung &amp; Unduh
           </button>
         </div>
       </div>
