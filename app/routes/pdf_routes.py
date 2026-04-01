@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import re
+import time
+import uuid
 from urllib.parse import quote
 from io import BytesIO
 
@@ -12,7 +16,7 @@ from pikepdf import Pdf, PasswordError
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 
-from app.config import MAX_FILE_SIZE
+from app.config import MAX_FILE_SIZE, UPLOAD_DIR, OUTPUT_DIR
 from app.services.pdf_lock_service import lock_pdf_bytes
 from app.services.pdf_unlock_service import unlock_pdf_bytes
 from app.services.pdf_compress_service import compress_pdf_bytes
@@ -27,6 +31,36 @@ from app.services.pdf_split_service import (
 from app.services.pdf_merge_service import merge_selected_pages
 
 router = APIRouter(prefix="/pdf", tags=["pdf"])
+
+
+def _ensure_dirs():
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+
+def _save_upload_file(file: UploadFile, content: bytes) -> str:
+    """Save uploaded file to UPLOAD_DIR with hashed name, return the path."""
+    _ensure_dirs()
+    original_name = file.filename or "document.pdf"
+    ext = os.path.splitext(original_name)[1] or ".pdf"
+    name_hash = hashlib.sha256(original_name.encode()).hexdigest()
+    unique_name = f"{name_hash}{ext}"
+    path = os.path.join(UPLOAD_DIR, unique_name)
+    with open(path, "wb") as f:
+        f.write(content)
+    return path
+
+
+def _save_output_file(content: bytes, filename: str) -> str:
+    """Save output file to OUTPUT_DIR with hashed name, return the path."""
+    _ensure_dirs()
+    ext = os.path.splitext(filename)[1] or ""
+    name_hash = hashlib.sha256(filename.encode()).hexdigest()
+    hashed_name = f"{name_hash}{ext}"
+    path = os.path.join(OUTPUT_DIR, hashed_name)
+    with open(path, "wb") as f:
+        f.write(content)
+    return path
 
 
 def _safe_filename(name: str) -> str:
@@ -82,7 +116,7 @@ def _parse_json_object(s: str | None) -> dict:
     return val
 
 
-async def _read_and_validate_pdf(file: UploadFile) -> bytes:
+async def _read_and_validate_pdf(file: UploadFile) -> tuple[bytes, str]:
     if not file.filename:
         raise HTTPException(status_code=400, detail="File PDF wajib diunggah.")
     ct = (file.content_type or "").lower()
@@ -94,7 +128,9 @@ async def _read_and_validate_pdf(file: UploadFile) -> bytes:
         raise HTTPException(status_code=400, detail="File melebihi batas ukuran.")
     if len(raw) < 8 or not raw.startswith(b"%PDF"):
         raise HTTPException(status_code=400, detail="Bukan file PDF yang valid.")
-    return raw
+    # Save to uploads
+    upload_path = _save_upload_file(file, raw)
+    return raw, upload_path
 
 
 @router.post("/lock")
@@ -107,19 +143,7 @@ async def lock_pdf(
     """
     Terima satu PDF, kunci dengan kata sandi, terapkan izin salin/cetak.
     """
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="File PDF wajib diunggah.")
-
-    ct = (file.content_type or "").lower()
-    name_ok = (file.filename or "").lower().endswith(".pdf")
-    if "pdf" not in ct and not name_ok:
-        raise HTTPException(status_code=400, detail="Hanya file PDF yang didukung.")
-
-    raw = await file.read()
-    if len(raw) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail="File melebihi batas ukuran.")
-    if len(raw) < 8 or not raw.startswith(b"%PDF"):
-        raise HTTPException(status_code=400, detail="Bukan file PDF yang valid.")
+    raw, upload_path = await _read_and_validate_pdf(file)
 
     allow_copy_b = allow_copy.strip().lower() in ("1", "true", "yes", "on")
     allow_print_b = allow_print.strip().lower() in ("1", "true", "yes", "on")
@@ -141,6 +165,9 @@ async def lock_pdf(
     out_name = f"{stem}_locked.pdf"
     cd = f'attachment; filename="{out_name}"; filename*=UTF-8\'\'{quote(out_name)}'
 
+    # Save output
+    _save_output_file(locked, out_name)
+
     return Response(
         content=locked,
         media_type="application/pdf",
@@ -156,19 +183,7 @@ async def unlock_pdf(
     """
     Terima satu PDF terkunci, buka dengan kata sandi, hilangkan enkripsi/izin.
     """
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="File PDF wajib diunggah.")
-
-    ct = (file.content_type or "").lower()
-    name_ok = (file.filename or "").lower().endswith(".pdf")
-    if "pdf" not in ct and not name_ok:
-        raise HTTPException(status_code=400, detail="Hanya file PDF yang didukung.")
-
-    raw = await file.read()
-    if len(raw) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail="File melebihi batas ukuran.")
-    if len(raw) < 8 or not raw.startswith(b"%PDF"):
-        raise HTTPException(status_code=400, detail="Bukan file PDF yang valid.")
+    raw, upload_path = await _read_and_validate_pdf(file)
 
     try:
         unlocked = unlock_pdf_bytes(raw, password)
@@ -182,6 +197,9 @@ async def unlock_pdf(
     stem = fname[:-4] if fname.lower().endswith(".pdf") else fname
     out_name = f"{stem}_unlocked.pdf"
     cd = f'attachment; filename="{out_name}"; filename*=UTF-8\'\'{quote(out_name)}'
+
+    # Save output
+    _save_output_file(unlocked, out_name)
 
     return Response(
         content=unlocked,
@@ -199,19 +217,7 @@ async def compress_pdf(
     """
     Terima satu PDF, kompres dengan kualitas tertentu menggunakan Ghostscript.
     """
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="File PDF wajib diunggah.")
-
-    ct = (file.content_type or "").lower()
-    name_ok = (file.filename or "").lower().endswith(".pdf")
-    if "pdf" not in ct and not name_ok:
-        raise HTTPException(status_code=400, detail="Hanya file PDF yang didukung.")
-
-    raw = await file.read()
-    if len(raw) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail="File melebihi batas ukuran.")
-    if len(raw) < 8 or not raw.startswith(b"%PDF"):
-        raise HTTPException(status_code=400, detail="Bukan file PDF yang valid.")
+    raw, upload_path = await _read_and_validate_pdf(file)
 
     # Deteksi PDF terenkripsi. Jika butuh password dan belum diberikan,
     # kembalikan kode khusus agar frontend bisa menampilkan pop-up.
@@ -258,6 +264,9 @@ async def compress_pdf(
     out_name = f"{stem}_compressed.pdf"
     cd = f'attachment; filename="{out_name}"; filename*=UTF-8\'\'{quote(out_name)}'
 
+    # Save output
+    _save_output_file(compressed, out_name)
+
     return Response(
         content=compressed,
         media_type="application/pdf",
@@ -292,7 +301,7 @@ async def split_pdf_pages(
     """
     Ekstrak halaman terpilih: 1 halaman → satu PDF; lebih dari satu → ZIP berisi satu PDF per halaman.
     """
-    raw = await _read_and_validate_pdf(file)
+    raw, upload_path = await _read_and_validate_pdf(file)
     clear = _decrypt_upload_for_tools(raw, password)
     page_list = _parse_pages_json(pages)
     stem = _stem_from_filename(file.filename or "document.pdf")
@@ -309,6 +318,10 @@ async def split_pdf_pages(
         ) from e
 
     cd = f'attachment; filename="{out_name}"; filename*=UTF-8\'\'{quote(out_name)}'
+
+    # Save output
+    _save_output_file(content, out_name)
+
     return Response(
         content=content,
         media_type=media,
@@ -325,7 +338,7 @@ async def delete_pdf_pages(
     """
     Hapus halaman terpilih; hasil satu PDF baru tanpa halaman tersebut.
     """
-    raw = await _read_and_validate_pdf(file)
+    raw, upload_path = await _read_and_validate_pdf(file)
     clear = _decrypt_upload_for_tools(raw, password)
     page_list = _parse_pages_json(pages)
     stem = _stem_from_filename(file.filename or "document.pdf")
@@ -342,6 +355,10 @@ async def delete_pdf_pages(
         ) from e
 
     cd = f'attachment; filename="{out_name}"; filename*=UTF-8\'\'{quote(out_name)}'
+
+    # Save output
+    _save_output_file(content, out_name)
+
     return Response(
         content=content,
         media_type="application/pdf",
@@ -358,7 +375,7 @@ async def pdf_to_word(
     Konversi PDF ke format Word (.docx).
     Jika PDF terenkripsi dan password belum diberikan, kembalikan 401.
     """
-    raw = await _read_and_validate_pdf(file)
+    raw, upload_path = await _read_and_validate_pdf(file)
 
     # Deteksi PDF terenkripsi
     decrypted_bytes = raw
@@ -399,6 +416,9 @@ async def pdf_to_word(
     out_name = f"{stem}.docx"
     cd = f'attachment; filename="{out_name}"; filename*=UTF-8\'\'{quote(out_name)}'
 
+    # Save output
+    _save_output_file(docx_bytes, out_name)
+
     return Response(
         content=docx_bytes,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -416,7 +436,7 @@ async def pdf_to_excel(
     Fokus pada ekstraksi tabel agar baris & kolom tetap rapi.
     Jika PDF terenkripsi dan password belum diberikan, kembalikan 401.
     """
-    raw = await _read_and_validate_pdf(file)
+    raw, upload_path = await _read_and_validate_pdf(file)
 
     # Deteksi PDF terenkripsi
     decrypted_bytes = raw
@@ -457,6 +477,9 @@ async def pdf_to_excel(
     out_name = f"{stem}.xlsx"
     cd = f'attachment; filename="{out_name}"; filename*=UTF-8\'\'{quote(out_name)}'
 
+    # Save output
+    _save_output_file(xlsx_bytes, out_name)
+
     return Response(
         content=xlsx_bytes,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -486,10 +509,12 @@ async def merge_pdf_pages(
     pwd_map = _parse_json_object(passwords)
 
     raw_files: list[bytes] = []
+    upload_paths: list[str] = []
     stems: list[str] = []
     for f in files:
-        raw = await _read_and_validate_pdf(f)
+        raw, upload_path = await _read_and_validate_pdf(f)
         raw_files.append(raw)
+        upload_paths.append(upload_path)
         stems.append(_stem_from_filename(f.filename or "document.pdf"))
 
     clear_files: list[bytes] = []
@@ -538,6 +563,10 @@ async def merge_pdf_pages(
 
     out_name = f"{stems[0]}_merged.pdf" if stems else "merged.pdf"
     cd = f'attachment; filename="{out_name}"; filename*=UTF-8\'\'{quote(out_name)}'
+
+    # Save output
+    _save_output_file(merged, out_name)
+
     return Response(
         content=merged,
         media_type="application/pdf",

@@ -7,6 +7,7 @@ from io import BytesIO
 
 import pikepdf
 from pikepdf import PasswordError, Pdf
+import datetime
 
 
 class PasswordRequiredError(Exception):
@@ -76,13 +77,14 @@ def split_selected_pages(
             return buf.getvalue(), name, "application/pdf"
 
         zbuf = BytesIO()
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         with zipfile.ZipFile(zbuf, "w", zipfile.ZIP_DEFLATED) as zf:
             for p1 in indices:
                 part = Pdf.new()
                 part.pages.append(pdf.pages[p1 - 1])
                 pbuf = BytesIO()
                 part.save(pbuf)
-                zf.writestr(f"page_{p1}.pdf", pbuf.getvalue())
+                zf.writestr(f"page({p1})-{timestamp}.pdf", pbuf.getvalue())
         return zbuf.getvalue(), f"{base_stem}_split_pages.zip", "application/zip"
 
 
