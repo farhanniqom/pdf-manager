@@ -16,22 +16,21 @@ pipeline {
 
         stage('Code Linting') {
             steps {
+                echo "Running lint..."
                 sh 'docker build --target lint -t pdf-manager-lint .'
             }
         }
 
         stage('Docker Build') {
             steps {
+                echo "Building Docker image..."
                 sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest ."
             }
         }
 
-        stage('Push to Registry') {
-            when {
-                branch 'main'
-            }
+        stage('Cleanup') {
             steps {
-                echo "Push skipped (belum setup credentials)"
+                sh "docker image prune -f"
             }
         }
 
@@ -40,7 +39,9 @@ pipeline {
                 branch 'main'
             }
             steps {
-                echo "Deploy skipped (belum setup remote server)"
+                echo "Deploying with Docker Compose..."
+                sh "docker compose down --remove-orphans"
+                sh "docker compose up -d --build"
             }
         }
     }
