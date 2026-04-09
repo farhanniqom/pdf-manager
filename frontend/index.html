@@ -4,86 +4,16 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>PDF Studio</title>
-<!-- Tailwind CSS with Plugins -->
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<!-- Material Symbols Outlined -->
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<!-- Google Fonts: Manrope & Inter -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
-<!-- Design System Configuration -->
-<script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            colors: {
-              "on-secondary-fixed-variant": "#3a485b",
-              "surface": "#faf8ff",
-              "on-primary-container": "#efefff",
-              "surface-container-highest": "#dae2fd",
-              "secondary": "#515f74",
-              "secondary-fixed-dim": "#b9c7df",
-              "on-surface-variant": "#434655",
-              "inverse-primary": "#b7c4ff",
-              "tertiary-container": "#bc4800",
-              "surface-bright": "#faf8ff",
-              "surface-dim": "#d2d9f4",
-              "on-tertiary": "#ffffff",
-              "on-tertiary-container": "#ffede6",
-              "on-primary": "#ffffff",
-              "on-background": "#131b2e",
-              "tertiary": "#943700",
-              "surface-container-high": "#e2e7ff",
-              "inverse-surface": "#283044",
-              "primary": "#0d46d1",
-              "on-secondary": "#ffffff",
-              "error-container": "#ffdad6",
-              "on-error": "#ffffff",
-              "secondary-container": "#d5e3fc",
-              "tertiary-fixed-dim": "#ffb596",
-              "surface-tint": "#2151da",
-              "surface-container-lowest": "#ffffff",
-              "inverse-on-surface": "#eef0ff",
-              "secondary-fixed": "#d5e3fc",
-              "on-primary-fixed": "#001551",
-              "tertiary-fixed": "#ffdbcd",
-              "background": "#faf8ff",
-              "on-secondary-container": "#57657a",
-              "on-primary-fixed-variant": "#0039b5",
-              "surface-container-low": "#f2f3ff",
-              "on-error-container": "#93000a",
-              "surface-container": "#eaedff",
-              "on-surface": "#131b2e",
-              "on-secondary-fixed": "#0d1c2e",
-              "surface-variant": "#dae2fd",
-              "on-tertiary-fixed-variant": "#7d2d00",
-              "primary-fixed": "#dce1ff",
-              "primary-container": "#3761ea",
-              "primary-fixed-dim": "#b7c4ff",
-              "outline": "#737686",
-              "outline-variant": "#c3c6d7",
-              "on-tertiary-fixed": "#360f00",
-              "error": "#ba1a1a"
-            },
-            fontFamily: {
-              "headline": ["Manrope", "sans-serif"],
-              "body": ["Inter", "sans-serif"],
-              "label": ["Inter", "sans-serif"]
-            },
-            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
-          },
-        },
-      }
-    </script>
+<!-- Local CSS -->
+<link href="static/css/output.css" rel="stylesheet"/>
+<link href="static/css/fonts.css" rel="stylesheet"/>
+
 <style>
       body {
         font-family: 'Inter', sans-serif;
       }
       .font-headline {
         font-family: 'Manrope', sans-serif;
-      }
-      .material-symbols-outlined {
-        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
       }
       .glass-effect {
         backdrop-filter: blur(20px);
@@ -107,10 +37,11 @@
 </div>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
 <!-- PDF to Excel -->
 <a href="pdf/to-excel.html" class="group bg-surface-container-lowest p-6 rounded-2xl hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all cursor-pointer block">
 <div class="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center text-green-600 mb-6 group-hover:scale-110 transition-transform">
-<span class="material-symbols-outlined" data-icon="table_chart">table_chart</span>
+<span>📊</span>
 </div>
 <h4 class="font-headline font-bold text-on-surface mb-2">PDF ke Excel</h4>
 <p class="text-xs text-on-surface-variant leading-relaxed">Ekstrak data tabular menjadi spreadsheet yang bersih dan dapat diedit.</p>
@@ -119,7 +50,7 @@
 <!-- PDF to Word -->
 <a href="pdf/to-word.html" class="group bg-surface-container-lowest p-6 rounded-2xl hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all cursor-pointer block">
 <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 mb-6 group-hover:scale-110 transition-transform">
-<span class="material-symbols-outlined" data-icon="description">description</span>
+<span>📄</span>
 </div>
 <h4 class="font-headline font-bold text-on-surface mb-2">PDF ke Word</h4>
 <p class="text-xs text-on-surface-variant leading-relaxed">Konversi dokumen ke format DOCX dengan presisi tata letak.</p>
@@ -127,7 +58,7 @@
 <!-- Compress PDF -->
 <a href="pdf/compress-pdf.html" class="group bg-surface-container-lowest p-6 rounded-2xl hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all cursor-pointer block">
 <div class="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 mb-6 group-hover:scale-110 transition-transform">
-<span class="material-symbols-outlined" data-icon="compress">compress</span>
+<span>🗜️</span>
 </div>
 <h4 class="font-headline font-bold text-on-surface mb-2">Kompres PDF</h4>
 <p class="text-xs text-on-surface-variant leading-relaxed">Kurangi ukuran file sesuaikan kualitas</p>
@@ -135,7 +66,7 @@
 <!-- Merge PDF -->
 <a href="pdf/merge-pdf.html" class="group bg-surface-container-lowest p-6 rounded-2xl hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all cursor-pointer block">
 <div class="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 mb-6 group-hover:scale-110 transition-transform">
-<span class="material-symbols-outlined" data-icon="merge_type">merge_type</span>
+<span>🔗</span>
 </div>
 <h4 class="font-headline font-bold text-on-surface mb-2">Gabung PDF</h4>
 <p class="text-xs text-on-surface-variant leading-relaxed">Gabungkan beberapa file PDF menjadi satu dokumen.</p>
@@ -143,7 +74,7 @@
 <!-- Split PDF -->
 <a href="pdf/split-pdf.html"  class="group bg-surface-container-lowest p-6 rounded-2xl hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all cursor-pointer block">
 <div class="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600 mb-6 group-hover:scale-110 transition-transform">
-<span class="material-symbols-outlined" data-icon="content_cut">content_cut</span>
+<span>✂️</span>
 </div>
 <h4 class="font-headline font-bold text-on-surface mb-2">Pisah PDF</h4>
 <p class="text-xs text-on-surface-variant leading-relaxed">Pisahkan satu dokumen menjadi halaman atau file individual.</p>
@@ -151,7 +82,7 @@
 <!-- Lock PDF -->
 <a href="pdf/lock.html" class="group bg-surface-container-lowest p-6 rounded-2xl hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all cursor-pointer block">
 <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 mb-6 group-hover:scale-110 transition-transform">
-<span class="material-symbols-outlined" data-icon="lock">lock</span>
+<span>🔒</span>
 </div>
 <h4 class="font-headline font-bold text-on-surface mb-2">Kunci PDF</h4>
 <p class="text-xs text-on-surface-variant leading-relaxed">Tambahkan enkripsi AES-256 dan perlindungan kata sandi.</p>
@@ -159,11 +90,12 @@
 <!-- Unlock PDF -->
 <a href="pdf/unlock-pdf.html" class="group bg-surface-container-lowest p-6 rounded-2xl hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all cursor-pointer block">
 <div class="w-12 h-12 rounded-xl bg-yellow-50 flex items-center justify-center text-yellow-600 mb-6 group-hover:scale-110 transition-transform">
-<span class="material-symbols-outlined" data-icon="lock_open">lock_open</span>
+<span>🔓</span>
 </div>
 <h4 class="font-headline font-bold text-on-surface mb-2">Buka Kunci PDF</h4>
 <p class="text-xs text-on-surface-variant leading-relaxed">Hapus batasan keamanan dari dokumen yang dilindungi.</p>
 </a>
+
 </div>
 </div>
 
