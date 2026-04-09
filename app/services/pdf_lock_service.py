@@ -29,7 +29,8 @@ def lock_pdf_bytes(
         print_highres=allow_print,
     )
     # Use different owner and user passwords to ensure permissions are enforced
-    owner_password = f"{password}_owner_{hash(password) % 1000000}"  # Make owner different
+    # Make owner different
+    owner_password = f"{password}_owner_{hash(password) % 1000000}"
     enc = Encryption(
         owner=owner_password,
         user=password,

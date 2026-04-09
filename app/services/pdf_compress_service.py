@@ -12,7 +12,8 @@ def compress_pdf_bytes(data: bytes, quality: str = "ebook") -> bytes:
     quality: 'screen', 'ebook', 'printer', 'prepress'
     """
     if quality not in ["screen", "ebook", "printer", "prepress"]:
-        raise ValueError("Invalid quality preset. Use: screen, ebook, printer, prepress")
+        raise ValueError(
+            "Invalid quality preset. Use: screen, ebook, printer, prepress")
 
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as input_file:
         input_file.write(data)

@@ -34,4 +34,3 @@ def merge_selected_pages(
     finally:
         for p in opened:
             p.close()
-

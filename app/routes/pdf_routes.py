@@ -112,7 +112,9 @@ def _parse_json_object(s: str | None) -> dict:
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=400, detail="JSON tidak valid.") from e
     if not isinstance(val, dict):
-        raise HTTPException(status_code=400, detail="Format JSON harus object.")
+        raise HTTPException(
+            status_code=400,
+            detail="Format JSON harus object.")
     return val
 
 
@@ -122,12 +124,17 @@ async def _read_and_validate_pdf(file: UploadFile) -> tuple[bytes, str]:
     ct = (file.content_type or "").lower()
     name_ok = (file.filename or "").lower().endswith(".pdf")
     if "pdf" not in ct and not name_ok:
-        raise HTTPException(status_code=400, detail="Hanya file PDF yang didukung.")
+        raise HTTPException(status_code=400,
+                            detail="Hanya file PDF yang didukung.")
     raw = await file.read()
     if len(raw) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail="File melebihi batas ukuran.")
+        raise HTTPException(
+            status_code=400,
+            detail="File melebihi batas ukuran.")
     if len(raw) < 8 or not raw.startswith(b"%PDF"):
-        raise HTTPException(status_code=400, detail="Bukan file PDF yang valid.")
+        raise HTTPException(
+            status_code=400,
+            detail="Bukan file PDF yang valid.")
     # Save to uploads
     upload_path = _save_upload_file(file, raw)
     return raw, upload_path
@@ -158,7 +165,8 @@ async def lock_pdf(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     except pikepdf.PdfError as e:
-        raise HTTPException(status_code=400, detail=f"PDF tidak valid atau rusak: {e}") from e
+        raise HTTPException(status_code=400,
+                            detail=f"PDF tidak valid atau rusak: {e}") from e
 
     fname = _safe_filename(file.filename)
     stem = fname[:-4] if fname.lower().endswith(".pdf") else fname
@@ -191,7 +199,8 @@ async def unlock_pdf(
         raise HTTPException(status_code=400, detail=str(e)) from e
     except pikepdf.PdfError as e:
         # Salah password atau PDF korup/format tidak didukung.
-        raise HTTPException(status_code=400, detail=f"Gagal membuka kunci PDF: {e}") from e
+        raise HTTPException(status_code=400,
+                            detail=f"Gagal membuka kunci PDF: {e}") from e
 
     fname = _safe_filename(file.filename)
     stem = fname[:-4] if fname.lower().endswith(".pdf") else fname
@@ -238,7 +247,8 @@ async def compress_pdf(
         try:
             with Pdf.open(BytesIO(raw), password=password) as pdf:
                 buf = BytesIO()
-                # Simpan ulang tanpa enkripsi sehingga Ghostscript bisa memproses maksimal.
+                # Simpan ulang tanpa enkripsi sehingga Ghostscript bisa
+                # memproses maksimal.
                 pdf.save(buf, encryption=None)
                 decrypted_bytes = buf.getvalue()
         except pikepdf.PdfError as e:
@@ -257,7 +267,8 @@ async def compress_pdf(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=f"Gagal mengompres PDF: {e}") from e
+        raise HTTPException(status_code=500,
+                            detail=f"Gagal mengompres PDF: {e}") from e
 
     fname = _safe_filename(file.filename)
     stem = fname[:-4] if fname.lower().endswith(".pdf") else fname
@@ -422,7 +433,8 @@ async def pdf_to_word(
     return Response(
         content=docx_bytes,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        headers={"Content-Disposition": cd},
+        headers={
+            "Content-Disposition": cd},
     )
 
 
@@ -483,7 +495,8 @@ async def pdf_to_excel(
     return Response(
         content=xlsx_bytes,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": cd},
+        headers={
+            "Content-Disposition": cd},
     )
 
 
@@ -497,14 +510,18 @@ async def merge_pdf_pages(
     Gabungkan halaman terpilih dari banyak file sesuai urutan kustom.
     """
     if not files:
-        raise HTTPException(status_code=400, detail="Unggah minimal satu file PDF.")
+        raise HTTPException(status_code=400,
+                            detail="Unggah minimal satu file PDF.")
 
     try:
         order_items = json.loads(order)
     except json.JSONDecodeError as e:
-        raise HTTPException(status_code=400, detail="Field order harus JSON array.") from e
+        raise HTTPException(status_code=400,
+                            detail="Field order harus JSON array.") from e
     if not isinstance(order_items, list) or not order_items:
-        raise HTTPException(status_code=400, detail="Order harus array dan tidak boleh kosong.")
+        raise HTTPException(
+            status_code=400,
+            detail="Order harus array dan tidak boleh kosong.")
 
     pwd_map = _parse_json_object(passwords)
 
@@ -541,17 +558,26 @@ async def merge_pdf_pages(
     merge_input: list[tuple[bytes, int]] = []
     for i, it in enumerate(order_items):
         if not isinstance(it, dict):
-            raise HTTPException(status_code=400, detail=f"Item order ke-{i + 1} tidak valid.")
+            raise HTTPException(status_code=400,
+                                detail=f"Item order ke-{i + 1} tidak valid.")
         if "file_index" not in it or "page" not in it:
-            raise HTTPException(status_code=400, detail=f"Item order ke-{i + 1} wajib punya file_index dan page.")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Item order ke-{i + 1} wajib punya file_index dan page.")
         fi = it["file_index"]
         pg = it["page"]
         if isinstance(fi, bool) or not isinstance(fi, int):
-            raise HTTPException(status_code=400, detail=f"file_index pada item ke-{i + 1} harus integer.")
+            raise HTTPException(
+                status_code=400,
+                detail=f"file_index pada item ke-{i + 1} harus integer.")
         if isinstance(pg, bool) or not isinstance(pg, int):
-            raise HTTPException(status_code=400, detail=f"page pada item ke-{i + 1} harus integer.")
+            raise HTTPException(
+                status_code=400,
+                detail=f"page pada item ke-{i + 1} harus integer.")
         if fi < 0 or fi >= len(clear_files):
-            raise HTTPException(status_code=400, detail=f"file_index pada item ke-{i + 1} di luar batas.")
+            raise HTTPException(
+                status_code=400,
+                detail=f"file_index pada item ke-{i + 1} di luar batas.")
         merge_input.append((clear_files[fi], pg))
 
     try:
@@ -559,7 +585,9 @@ async def merge_pdf_pages(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     except pikepdf.PdfError as e:
-        raise HTTPException(status_code=400, detail=f"Gagal merge PDF: {e}") from e
+        raise HTTPException(
+            status_code=400,
+            detail=f"Gagal merge PDF: {e}") from e
 
     out_name = f"{stems[0]}_merged.pdf" if stems else "merged.pdf"
     cd = f'attachment; filename="{out_name}"; filename*=UTF-8\'\'{quote(out_name)}'
@@ -572,4 +600,3 @@ async def merge_pdf_pages(
         media_type="application/pdf",
         headers={"Content-Disposition": cd},
     )
-

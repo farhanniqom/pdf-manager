@@ -19,8 +19,14 @@ def _style_worksheet(ws, table_data: list[list]) -> None:
 
     # Header style
     header_font = Font(name="Calibri", bold=True, size=11, color="FFFFFF")
-    header_fill = PatternFill(start_color="2B579A", end_color="2B579A", fill_type="solid")
-    header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    header_fill = PatternFill(
+        start_color="2B579A",
+        end_color="2B579A",
+        fill_type="solid")
+    header_alignment = Alignment(
+        horizontal="center",
+        vertical="center",
+        wrap_text=True)
 
     # Body style
     body_font = Font(name="Calibri", size=11)
@@ -34,7 +40,10 @@ def _style_worksheet(ws, table_data: list[list]) -> None:
         bottom=Side(style="thin", color="D9D9D9"),
     )
 
-    alt_fill = PatternFill(start_color="F2F7FB", end_color="F2F7FB", fill_type="solid")
+    alt_fill = PatternFill(
+        start_color="F2F7FB",
+        end_color="F2F7FB",
+        fill_type="solid")
 
     for row_idx, row in enumerate(table_data, start=1):
         for col_idx, cell_value in enumerate(row, start=1):
@@ -56,7 +65,8 @@ def _style_worksheet(ws, table_data: list[list]) -> None:
         column_letter = get_column_letter(col_idx)
         for row in table_data:
             if col_idx - 1 < len(row):
-                cell_val = str(row[col_idx - 1]) if row[col_idx - 1] is not None else ""
+                cell_val = str(row[col_idx - 1]
+                               ) if row[col_idx - 1] is not None else ""
                 max_length = max(max_length, len(cell_val))
         adjusted_width = min(max(max_length + 4, 10), 50)
         ws.column_dimensions[column_letter].width = adjusted_width
@@ -114,7 +124,8 @@ def convert_pdf_to_excel(data: bytes) -> bytes:
                                 if cell is None:
                                     cleaned_row.append("")
                                 else:
-                                    cleaned_row.append(str(cell).strip().replace("\n", " "))
+                                    cleaned_row.append(
+                                        str(cell).strip().replace("\n", " "))
                             cleaned_table.append(cleaned_row)
 
                         _style_worksheet(ws, cleaned_table)

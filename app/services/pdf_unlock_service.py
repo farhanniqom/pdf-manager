@@ -24,4 +24,3 @@ def unlock_pdf_bytes(data: bytes, password: str) -> bytes:
         pdf.save(out, encryption=None)
 
     return out.getvalue()
-

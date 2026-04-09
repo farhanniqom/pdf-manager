@@ -19,13 +19,19 @@ app.add_middleware(
 
 app.include_router(pdf_router, prefix="/api")
 
+
 @app.get("/api/health")
 async def health_check():
     return {"status": "ok"}
 
 _frontend = Path(__file__).resolve().parent.parent / "frontend"
 if _frontend.is_dir():
-    app.mount("/", StaticFiles(directory=str(_frontend), html=True), name="static")
+    app.mount(
+        "/",
+        StaticFiles(
+            directory=str(_frontend),
+            html=True),
+        name="static")
 
 # Start auto-delete schedulers for storage folders
 _storage = Path(__file__).resolve().parent.parent / "storage"

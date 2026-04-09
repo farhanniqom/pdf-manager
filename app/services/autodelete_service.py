@@ -6,6 +6,7 @@ import threading
 import time
 from pathlib import Path
 
+
 def cleanup_folder(folder_path, max_age_seconds=600):
     """
     Delete files in the folder that are older than max_age_seconds.
@@ -22,6 +23,7 @@ def cleanup_folder(folder_path, max_age_seconds=600):
                     print(f"Auto-deleted old file: {file_path}")
                 except Exception as e:
                     print(f"Error deleting {file_path}: {e}")
+
 
 def start_cleanup_scheduler(folder_path, interval_seconds=600):
     """

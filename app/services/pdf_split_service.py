@@ -85,7 +85,8 @@ def split_selected_pages(
                 pbuf = BytesIO()
                 part.save(pbuf)
                 zf.writestr(f"page({p1})-{timestamp}.pdf", pbuf.getvalue())
-        return zbuf.getvalue(), f"{base_stem}_split_pages.zip", "application/zip"
+        return zbuf.getvalue(
+        ), f"{base_stem}_split_pages.zip", "application/zip"
 
 
 def delete_selected_pages(
