@@ -16,7 +16,7 @@ pipeline {
 
         stage('Code Linting') {
             steps {
-                sh "pip install flake8 --user"
+                sh "python3 -m pip install flake8 --user"
                 sh "python3 -m flake8 app/ --exclude=__pycache__,venv --max-line-length=120"
             }
         }
