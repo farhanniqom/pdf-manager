@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         APP_NAME = 'pdf-manager'
-        IMAGE_NAME = "farhanniqom/${APP_NAME}" // Change this to your registry/username
+        IMAGE_NAME = "farhanniqom/${APP_NAME}"
         IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
 
@@ -16,15 +16,13 @@ pipeline {
 
         stage('Code Linting') {
             steps {
-                sh "python3 -m pip install flake8 --user"
-                sh "python3 -m flake8 app/ --exclude=__pycache__,venv --max-line-length=120"
+                sh 'docker build --target lint -t pdf-manager-lint .'
             }
         }
 
         stage('Docker Build') {
             steps {
-                echo "Building Docker Image: ${IMAGE_NAME}:${IMAGE_TAG}"
-                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest -f DockerFile ."
+                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest ."
             }
         }
 
@@ -33,13 +31,7 @@ pipeline {
                 branch 'main'
             }
             steps {
-                // UNCOMMENT and configure 'docker-hub-credentials' in Jenkins to enable pushing
-                // withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-                //     sh "docker login -u ${USER} -p ${PASS}"
-                //     sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
-                //     sh "docker push ${IMAGE_NAME}:latest"
-                // }
-                echo "Push stage skipped. Configure credentials and registry in Jenkinsfile to enable."
+                echo "Push skipped (belum setup credentials)"
             }
         }
 
@@ -48,23 +40,14 @@ pipeline {
                 branch 'main'
             }
             steps {
-                echo "Deploying application using Docker Compose..."
-                sh "docker compose down --remove-orphans"
-                sh "docker compose up -d"
+                echo "Deploy skipped (belum setup remote server)"
             }
         }
     }
 
     post {
         always {
-            echo "Cleaning up workspace..."
             cleanWs()
-        }
-        success {
-            echo "Pipeline completed successfully!"
-        }
-        failure {
-            echo "Pipeline failed. Check build logs."
         }
     }
 }

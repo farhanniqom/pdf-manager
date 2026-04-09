@@ -2,21 +2,18 @@ version: '3.8'
 
 services:
   app:
-    build:
-      context: .
-      dockerfile: DockerFile
-    image: pdf-manager:latest
+    image: farhanniqom/pdf-manager:latest
     container_name: pdf-manager-app
     ports:
-      - "9000:9000"
+      - "9000:8000"
     volumes:
       - ./storage:/app/storage
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
-    # Adding healthcheck to ensure the service is up
+
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/api/health"]
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/api/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
