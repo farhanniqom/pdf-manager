@@ -42,6 +42,7 @@ pipeline {
                 echo "Deploying with Docker Compose..."
                 sh "docker compose down --remove-orphans"
                 sh "docker compose up -d --build"
+                sh "docker run -d --name ${APP_NAME} -p 9000:9000 ${IMAGE_NAME}:${IMAGE_TAG}"
             }
         }
     }
